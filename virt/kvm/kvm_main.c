@@ -1532,6 +1532,9 @@ static int check_memory_region_flags(const struct kvm_userspace_memory_region *m
 	valid_flags |= KVM_MEM_READONLY;
 #endif
 
+	if (kvm_vm_ioctl_check_extension(NULL, GOOGLE_KVM_CAP_NOWAIT_ON_FAULT))
+		valid_flags |= GOOGLE_KVM_MEM_NOWAIT_ON_FAULT;
+
 	if (mem->flags & ~valid_flags)
 		return -EINVAL;
 

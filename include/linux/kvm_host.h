@@ -2301,4 +2301,10 @@ static inline void kvm_account_pgtable_pages(void *virt, int nr)
  */
 inline void kvm_populate_efault_info(struct kvm_vcpu *vcpu,
 				     uint64_t gpa, uint64_t len, uint64_t flags);
+
+static inline bool kvm_slot_nowait_on_fault(
+	const struct kvm_memory_slot *slot)
+{
+	return slot->flags & GOOGLE_KVM_MEM_NOWAIT_ON_FAULT;
+}
 #endif
