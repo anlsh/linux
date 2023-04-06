@@ -7784,7 +7784,7 @@ bugs and reported to the maintainers so that annotations can be added.
 7.35 KVM_CAP_NOWAIT_ON_FAULT
 ----------------------------
 
-:Architectures: None
+:Architectures: x86
 :Returns: -EINVAL.
 
 The presence of this capability indicates that userspace may pass the
