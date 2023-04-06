@@ -3188,6 +3188,10 @@ static void kvm_send_hwpoison_signal(struct kvm_memory_slot *slot, gfn_t gfn)
 
 static int kvm_handle_error_pfn(struct kvm_vcpu *vcpu, struct kvm_page_fault *fault)
 {
+	uint64_t rounded_gfn;
+	uint64_t fault_size;
+	uint64_t fault_flags;
+
 	if (is_sigpending_pfn(fault->pfn)) {
 		kvm_handle_signal_exit(vcpu);
 		return -EINTR;
@@ -3206,6 +3210,15 @@ static int kvm_handle_error_pfn(struct kvm_vcpu *vcpu, struct kvm_page_fault *fa
 		return RET_PF_RETRY;
 	}
 
+	fault_size = KVM_HPAGE_SIZE(fault->goal_level);
+	rounded_gfn = round_down(fault->gfn * PAGE_SIZE, fault_size);
+
+	fault_flags = 0;
+	if (fault->write)
+		fault_flags |= KVM_MEMORY_FAULT_FLAG_WRITE;
+	if (fault->exec)
+		fault_flags |= KVM_MEMORY_FAULT_FLAG_EXEC;
+	kvm_populate_efault_info(vcpu, rounded_gfn, fault_size, fault_flags);
 	return -EFAULT;
 }
 
