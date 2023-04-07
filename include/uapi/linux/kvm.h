@@ -273,6 +273,8 @@ struct kvm_xen_exit {
 #define KVM_EXIT_RISCV_CSR        36
 #define KVM_EXIT_NOTIFY           37
 
+#define GOOGLE_KVM_EXIT_EFAULT_INFO     (22 | (1UL << 31))
+
 /* For KVM_EXIT_INTERNAL_ERROR */
 /* Emulate instruction failed. */
 #define KVM_INTERNAL_ERROR_EMULATION	1
@@ -510,6 +512,12 @@ struct kvm_run {
 #define KVM_NOTIFY_CONTEXT_INVALID	(1 << 0)
 			__u32 flags;
 		} notify;
+		/* GOOGLE_KVM_EXIT_EFAULT_INFO */
+		struct {
+			__u64 flags;
+			__u64 gpa;
+			__u64 len;
+		} efault_info;
 		/* Fix the size of the union. */
 		char padding[256];
 	};
@@ -1178,6 +1186,8 @@ struct kvm_ppc_resize_hpt {
 #define KVM_CAP_S390_ZPCI_OP 221
 #define KVM_CAP_S390_CPU_TOPOLOGY 222
 #define KVM_CAP_DIRTY_LOG_RING_ACQ_REL 223
+
+#define GOOGLE_KVM_CAP_MEMORY_FAULT_INFO 1010
 
 #ifdef KVM_CAP_IRQ_ROUTING
 
@@ -2227,5 +2237,10 @@ struct kvm_s390_zpci_op {
 
 /* flags for kvm_s390_zpci_op->u.reg_aen.flags */
 #define KVM_S390_ZPCIOP_REGAEN_HOST    (1 << 0)
+
+/* flags for GOOGLE_KVM_CAP_MEMORY_FAULT_INFO and eventually the upstream cap */
+
+#define KVM_MEMORY_FAULT_FLAG_WRITE    (1 << 0)
+#define KVM_MEMORY_FAULT_FLAG_EXEC     (1 << 1)
 
 #endif /* __LINUX_KVM_H */

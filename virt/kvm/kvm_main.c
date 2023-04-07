@@ -4628,6 +4628,9 @@ static int kvm_vm_ioctl_enable_cap_generic(struct kvm *kvm,
 			return -EINVAL;
 
 		return kvm_vm_ioctl_enable_dirty_log_ring(kvm, cap->args[0]);
+	case GOOGLE_KVM_CAP_MEMORY_FAULT_INFO: {
+		return -EINVAL;
+	}
 	default:
 		return kvm_vm_ioctl_enable_cap(kvm, cap);
 	}
@@ -6105,4 +6108,36 @@ int kvm_vm_create_worker_thread(struct kvm *kvm, kvm_vm_thread_fn_t thread_fn,
 		*thread_ptr = thread;
 
 	return init_context.err;
+}
+
+inline void kvm_populate_efault_info(struct kvm_vcpu *vcpu,
+				     uint64_t gpa, uint64_t len, uint64_t flags)
+{
+	if (WARN_ON_ONCE(!vcpu))
+		return;
+
+	preempt_disable();
+	/*
+	 * Ensure the this vCPU isn't modifying another vCPU's run struct, which
+	 * would open the door for races between concurrent calls to this
+	 * function.
+	 */
+	if (WARN_ON_ONCE(vcpu != __this_cpu_read(kvm_running_vcpu)))
+		goto out;
+	/*
+	 * Try not to overwrite an already-populated run struct.
+	 * This isn't a perfect solution, as there's no guarantee that the exit
+	 * reason is set before the run struct is populated, but it should prevent
+	 * at least some bugs.
+	 */
+	else if (WARN_ON_ONCE(vcpu->run->exit_reason != KVM_EXIT_UNKNOWN))
+		goto out;
+
+	vcpu->run->exit_reason = GOOGLE_KVM_EXIT_EFAULT_INFO;
+	vcpu->run->efault_info.gpa = gpa;
+	vcpu->run->efault_info.len = len;
+	vcpu->run->efault_info.flags = flags;
+
+out:
+	preempt_enable();
 }
