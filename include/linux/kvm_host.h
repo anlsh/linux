@@ -2288,4 +2288,13 @@ static inline void kvm_account_pgtable_pages(void *virt, int nr)
 /* Max number of entries allowed for each kvm dirty ring */
 #define  KVM_DIRTY_RING_MAX_ENTRIES  65536
 
+/*
+ * Attempts to set the run struct's exit reason to KVM_EXIT_MEMORY_FAULT and
+ * populate the memory_fault field with the given information.
+ *
+ * WARNs and does nothing if the exit reason is not KVM_EXIT_UNKNOWN, or if
+ * 'vcpu' is not the current running vcpu.
+ */
+void kvm_handle_guest_uaccess_fault(struct kvm_vcpu *vcpu,
+				    uint64_t gpa, uint64_t len, uint64_t flags);
 #endif

@@ -6702,6 +6702,18 @@ spec refer, https://github.com/riscv/riscv-sbi-doc.
 
 ::
 
+		/* KVM_EXIT_MEMORY_FAULT */
+		struct {
+			__u64 flags;
+			__u64 gpa;
+			__u64 len; /* in bytes */
+		} memory_fault;
+
+Indicates a vCPU memory fault on the guest physical address range
+[gpa, gpa + len). See KVM_CAP_MEMORY_FAULT_INFO for more details.
+
+::
+
     /* KVM_EXIT_NOTIFY */
     struct {
   #define KVM_NOTIFY_CONTEXT_INVALID	(1 << 0)
@@ -7733,6 +7745,37 @@ KVM would exit to userspace for handling.
 This capability is aimed to mitigate the threat that malicious VMs can
 cause CPU stuck (due to event windows don't open up) and make the CPU
 unavailable to host or other VMs.
+
+7.34 KVM_CAP_MEMORY_FAULT_INFO
+------------------------------
+
+:Architectures: x86, arm64
+:Returns: -EINVAL.
+
+The presence of this capability indicates that KVM_RUN may annotate EFAULTs
+returned by KVM_RUN in response to failed vCPU guest memory accesses which
+userspace may be able to resolve.
+
+The annotation is returned via the run struct. When KVM_RUN returns an error
+with errno=EFAULT, userspace may check the exit reason: if it is
+KVM_EXIT_MEMORY_FAULT, userspace is then permitted to read the run struct's
+'memory_fault' field.
+
+This capability is informational only: attempts to KVM_ENABLE_CAP it directly
+will fail.
+
+The 'gpa' and 'len' (in bytes) fields describe the range of guest
+physical memory to which access failed, i.e. [gpa, gpa + len). 'flags' is a
+bitfield indicating the nature of the access: valid masks are
+
+  - KVM_MEMORY_FAULT_FLAG_READ:      The failed access was a read.
+  - KVM_MEMORY_FAULT_FLAG_WRITE:     The failed access was a write.
+  - KVM_MEMORY_FAULT_FLAG_EXEC:      The failed access was an exec.
+
+NOTE: The implementation of this capability is incomplete. Even with it enabled,
+userspace may receive "bare" EFAULTs (i.e. exit reason != KVM_EXIT_MEMORY_FAULT)
+from KVM_RUN for failures which may be resolvable. These should be considered
+bugs and reported to the maintainers so that annotations can be added.
 
 8. Other capabilities.
 ======================
