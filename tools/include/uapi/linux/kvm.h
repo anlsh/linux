@@ -510,6 +510,12 @@ struct kvm_run {
 #define KVM_NOTIFY_CONTEXT_INVALID	(1 << 0)
 			__u32 flags;
 		} notify;
+		/* KVM_EXIT_MEMORY_FAULT + EFAULT */
+		struct {
+			__u64 flags;
+			__u64 gpa;
+			__u64 len;
+		} memory_fault;
 		/* Fix the size of the union. */
 		char padding[256];
 	};

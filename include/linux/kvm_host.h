@@ -2318,4 +2318,26 @@ static inline void kvm_account_pgtable_pages(void *virt, int nr)
 /* Max number of entries allowed for each kvm dirty ring */
 #define  KVM_DIRTY_RING_MAX_ENTRIES  65536
 
+/*
+ * Attempts to set the run struct's exit reason to KVM_EXIT_MEMORY_FAULT and
+ * populate the memory_fault field with the given information.
+ */
+static inline void kvm_prepare_memory_fault_exit(struct kvm_vcpu *vcpu,
+						 gpa_t gpa, unsigned long len,
+						 bool is_write, bool is_exec)
+{
+	if (WARN_ON_ONCE(vcpu != kvm_get_running_vcpu()))
+		return;
+
+	if (is_write)
+		vcpu->run->memory_fault.flags |= KVM_MEMORY_FAULT_FLAG_WRITE;
+	else if (is_exec)
+		vcpu->run->memory_fault.flags |= KVM_MEMORY_FAULT_FLAG_EXEC;
+	else
+		vcpu->run->memory_fault.flags |= KVM_MEMORY_FAULT_FLAG_READ;
+
+	vcpu->run->memory_fault.gpa = gpa;
+	vcpu->run->memory_fault.len = len;
+}
+
 #endif
