@@ -11170,6 +11170,8 @@ int kvm_arch_vcpu_ioctl_run(struct kvm_vcpu *vcpu)
 	if (r <= 0)
 		goto out;
 
+	kvm_run->exit_reason = KVM_EXIT_UNKNOWN;
+	kvm_run->hw.hardware_exit_reason = -1; /* unused exit reason value */
 	r = vcpu_run(vcpu);
 
 out:
