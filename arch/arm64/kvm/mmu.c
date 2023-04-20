@@ -1141,6 +1141,8 @@ static int user_mem_abort(struct kvm_vcpu *vcpu, phys_addr_t fault_ipa,
 	unsigned long vma_pagesize, fault_granule;
 	enum kvm_pgtable_prot prot = KVM_PGTABLE_PROT_R;
 	struct kvm_pgtable *pgt;
+	bool exit_on_memory_fault = kvm_slot_nowait_on_fault(memslot);
+	uint64_t memory_fault_flags;
 
 	fault_granule = 1UL << ARM64_HW_PGTABLE_LEVEL_SHIFT(fault_level);
 	write_fault = kvm_is_write_fault(vcpu);
@@ -1239,8 +1241,20 @@ static int user_mem_abort(struct kvm_vcpu *vcpu, phys_addr_t fault_ipa,
 	 */
 	smp_rmb();
 
-	pfn = __gfn_to_pfn_memslot(memslot, gfn, false, false, NULL,
-				   write_fault, &writable, NULL);
+	pfn = __gfn_to_pfn_memslot(memslot, gfn, exit_on_memory_fault, false,
+				   NULL, write_fault, &writable, NULL);
+
+	if (exit_on_memory_fault && pfn == KVM_PFN_ERR_FAULT) {
+		memory_fault_flags = 0;
+		if (write_fault)
+			memory_fault_flags |= KVM_MEMORY_FAULT_FLAG_EXEC;
+		if (exec_fault)
+			memory_fault_flags |= KVM_MEMORY_FAULT_FLAG_EXEC;
+		kvm_populate_efault_info(vcpu,
+					 round_down(gfn * PAGE_SIZE, vma_pagesize), vma_pagesize,
+					 memory_fault_flags);
+		return -EFAULT;
+	}
 	if (pfn == KVM_PFN_ERR_HWPOISON) {
 		kvm_send_hwpoison_signal(hva, vma_shift);
 		return 0;
