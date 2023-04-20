@@ -222,7 +222,7 @@ static void run_test(enum vm_guest_mode mode, void *arg)
 	int i;
 
 	vm = perf_test_create_vm(mode, nr_vcpus, guest_percpu_mem_size,
-				 p->slots, p->backing_src,
+				 p->slots, 0, p->backing_src,
 				 p->partition_vcpu_memory_access);
 
 	perf_test_set_wr_fract(vm, p->wr_fract);
