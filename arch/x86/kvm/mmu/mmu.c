@@ -4199,6 +4199,8 @@ static int __kvm_faultin_pfn(struct kvm_vcpu *vcpu, struct kvm_page_fault *fault
 {
 	struct kvm_memory_slot *slot = fault->slot;
 	bool async;
+	bool nowait = likely(fault->slot)
+		      && kvm_slot_nowait_on_fault(fault->slot);
 
 	/*
 	 * Retry the page fault if the gfn hit a memslot that is being deleted
@@ -4228,7 +4230,8 @@ static int __kvm_faultin_pfn(struct kvm_vcpu *vcpu, struct kvm_page_fault *fault
 	}
 
 	async = false;
-	fault->pfn = __gfn_to_pfn_memslot(slot, fault->gfn, false, false, &async,
+	fault->pfn = __gfn_to_pfn_memslot(slot, fault->gfn,
+					  nowait, false, nowait ? NULL : &async,
 					  fault->write, &fault->map_writable,
 					  &fault->hva);
 	if (!async)
