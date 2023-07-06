@@ -1312,6 +1312,7 @@ yet and must be cleared on entry.
   /* for kvm_userspace_memory_region::flags */
   #define KVM_MEM_LOG_DIRTY_PAGES	(1UL << 0)
   #define KVM_MEM_READONLY	(1UL << 1)
+  #define KVM_MEM_NOWAIT_ON_FAULT (1UL << 2)
 
 This ioctl allows the user to create, modify or delete a guest physical
 memory slot.  Bits 0-15 of "slot" specify the slot id and this value
@@ -1342,12 +1343,15 @@ It is recommended that the lower 21 bits of guest_phys_addr and userspace_addr
 be identical.  This allows large pages in the guest to be backed by large
 pages in the host.
 
-The flags field supports two flags: KVM_MEM_LOG_DIRTY_PAGES and
-KVM_MEM_READONLY.  The former can be set to instruct KVM to keep track of
+The flags field supports three flags
+
+1.  KVM_MEM_LOG_DIRTY_PAGES: can be set to instruct KVM to keep track of
 writes to memory within the slot.  See KVM_GET_DIRTY_LOG ioctl to know how to
-use it.  The latter can be set, if KVM_CAP_READONLY_MEM capability allows it,
+use it.
+2.  KVM_MEM_READONLY: can be set, if KVM_CAP_READONLY_MEM capability allows it,
 to make a new slot read-only.  In this case, writes to this memory will be
 posted to userspace as KVM_EXIT_MMIO exits.
+3.  KVM_MEM_NOWAIT_ON_FAULT: see KVM_CAP_NOWAIT_ON_FAULT for details.
 
 When the KVM_CAP_SYNC_MMU capability is available, changes in the backing of
 the memory region are automatically reflected into the guest.  For example, an
@@ -7776,6 +7780,28 @@ NOTE: The implementation of this capability is incomplete. Even with it enabled,
 userspace may receive "bare" EFAULTs (i.e. exit reason != KVM_EXIT_MEMORY_FAULT)
 from KVM_RUN for failures which may be resolvable. These should be considered
 bugs and reported to the maintainers so that annotations can be added.
+
+7.35 KVM_CAP_NOWAIT_ON_FAULT
+----------------------------
+
+:Architectures: None
+:Returns: -EINVAL.
+
+The presence of this capability indicates that userspace may pass the
+KVM_MEM_NOWAIT_ON_FAULT flag to KVM_SET_USER_MEMORY_REGION to cause KVM_RUN
+to fail (-EFAULT) in response to page faults for which resolution would require
+the faulting thread to sleep.
+
+The range of guest physical memory causing the fault is advertised to userspace
+through KVM_CAP_MEMORY_FAULT_INFO.
+
+Userspace should determine how best to make the mapping present, then take
+appropriate action. For instance establishing the mapping could involve a
+MADV_POPULATE_READ|WRITE, in the context of userfaultfd a UFFDIO_COPY|CONTINUE
+could be appropriate, etc. After establishing the mapping, userspace can return
+to KVM to retry the memory access.
+
+Attempts to enable this capability directly will fail.
 
 8. Other capabilities.
 ======================

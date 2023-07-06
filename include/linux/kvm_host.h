@@ -2297,4 +2297,10 @@ static inline void kvm_account_pgtable_pages(void *virt, int nr)
  */
 void kvm_handle_guest_uaccess_fault(struct kvm_vcpu *vcpu,
 				    uint64_t gpa, uint64_t len, uint64_t flags);
+
+static inline bool kvm_is_slot_nowait_on_fault(const struct kvm_memory_slot *slot)
+{
+	return slot && slot->flags & KVM_MEM_NOWAIT_ON_FAULT;
+}
+
 #endif
