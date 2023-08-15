@@ -2295,8 +2295,26 @@ static inline void kvm_account_pgtable_pages(void *virt, int nr)
  * WARNs and does nothing if the exit reason is not KVM_EXIT_UNKNOWN, or if
  * 'vcpu' is not the current running vcpu.
  */
-void kvm_handle_guest_uaccess_fault(struct kvm_vcpu *vcpu,
-				    uint64_t gpa, uint64_t len, uint64_t flags);
+static inline void kvm_handle_guest_uaccess_fault(struct kvm_vcpu *vcpu,
+						  uint64_t gpa, uint64_t len, uint64_t flags)
+{
+	/*
+	 * Ensure that an unloaded vCPU's run struct isn't being modified
+	 */
+	if (WARN_ON_ONCE(vcpu != kvm_get_running_vcpu()))
+		return;
+
+	/*
+	 * Warn when overwriting an already-populated run struct.
+	 */
+	WARN_ON_ONCE(IS_ENABLED(CONFIG_KVM_WARN_MEMFAULT_ANNOTATE_WOULD_OVERWRITE)
+		     && vcpu->run->exit_reason != KVM_EXIT_UNKNOWN);
+
+	vcpu->run->exit_reason = KVM_EXIT_MEMORY_FAULT;
+	vcpu->run->memory_fault.gpa = gpa;
+	vcpu->run->memory_fault.len = len;
+	vcpu->run->memory_fault.flags = flags;
+}
 
 static inline bool kvm_is_slot_nowait_on_fault(const struct kvm_memory_slot *slot)
 {
